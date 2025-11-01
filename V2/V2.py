@@ -9,6 +9,7 @@ import sqlite3
 from os import path
 from typing import Literal, Final
 from random import randint
+from time import sleep
 
 Ressources = path.abspath(r"Ressources\Kenji_battle_ressources.pyxres")
 Données = path.abspath(r"Ressources\Données.sq3")
@@ -51,7 +52,9 @@ def ajouter_bouton(x: int, y: int, width: int, height: int, gr_elements: str, fo
     else:
         if not (couleur1 or couleur2):
             raise ValueError("Les couleurs doivent être préscisées.")
-    elements[gr_elements]["boutons"].append(Bouton(x, y, width, height, fonction, paramètres_fonction, taille, x_img, y_img, x_img_a, y_img_a, coolkey, modèle, (couleur1, couleur2), bordure))
+    bouton = Bouton(x, y, width, height, fonction, paramètres_fonction, taille, x_img, y_img, x_img_a, y_img_a, coolkey, modèle, (couleur1, couleur2), bordure)
+    elements[gr_elements]["boutons"].append(bouton)
+    return bouton
 
 def update_elements(gr_elements, *type_elements):
     if not len(type_elements) == 0:
@@ -218,11 +221,24 @@ class Bouton:
         self.coolkey = couleur_transparence
         self.animation = False
 
-    def exclusion(self, valeur):
+    def exclusion(self, valeur: bool = True):
         self.exclu = valeur
 
-    def change_y(self, nouveau_y):
-        self.y = nouveau_y
+    def change_position(self, x: float = None, y: float = None): #type: ignore
+        """
+        Change la position du bouton jusqu'au prochain changement ou à jamais.
+
+        Parameters
+        -----------
+        x: optionel[:class:`float`]
+            Le nouveau placement sur l'axe x.
+        y: optionel[:class:`float`]
+            Le nouveau placement dur l'axe y.
+        """
+        if x != None:
+            self.x = x
+        if y != None:
+            self.y = y
 
     def update(self):
         self.animation = False
@@ -866,32 +882,51 @@ class Base_données:
                 break
         else:
             raise ValueError("Cet amélioration n'éxiste pas.")
-        
-        cur.execute(f"update {pseudo}_generale set suchis = {suchis - objets[i]["prix"]} ")
+    
+        global suchis
+        if suchis >= objets[i]["prix"]:
+            suchis -= objets[i]["prix"]
+            cur.execute(f"update {pseudo}_generale set suchis = {suchis} ")
+            elements["Shop"]["texte"][0].change_texte(str(suchis))
+        else:
+            elements[objets[i]["nom"]]["texte"][3].change_texte("Vous ne le/pouvez pas !!")
+            return
 
         i += 1
 
         if cur.execute(f"select acheté from {pseudo}_amélioration where rowid = {i}").fetchone()[0]:
+            self.fermeture(conn, cur)
             raise Exception("Cet amélioration à déjà été acheté.")
         else:
             cur.execute(f"update {pseudo}_amélioration set acheté = True where rowid = {i}")
             conn.commit()
 
-        r = cur.execute(f"select acheté from {pseudo}_amélioration").fetchall()
-        achetés = []
-        for i in range(len(r)):
-            achetés.append(r[i][0])
-
-        global objets_achetables
-        
-        objets_achetables = []
-        for i in range(len(objets)):
-            if not achetés[i]:
-                if objets[i]["requirement"] == None or achetés[objets[i]["requirement"]] == True:
-                    objets_achetables.append(objets[i].copy())
+        self.refresh_objets()
             
         self.refresh_stats()
         self.fermeture(conn, cur)
+
+    def refresh_objets(self):
+        achetes = self.recup_objets()
+
+        x_base = x = 160
+        y = 50
+        espace = 60
+        u = 0
+        for i in range(len(objets)):
+            if not achetes[i] and (objets[i]["requirement"] == None or achetes[objets[i]["requirement"]] == True):
+                if u % 6 == 0:
+                    y += espace
+                    x = x_base
+                elements["Shop"]["boutons"][i].exclusion(False)
+                elements["Shop"]["boutons"][i].change_position(x = x, y = y)
+                x += espace
+                u += 1
+            else:
+                elements["Shop"]["boutons"][i].exclusion()
+        
+        global ouv_upg
+        ouv_upg = None
 
     def refresh_stats(self):
         global base_stats
@@ -981,21 +1016,13 @@ def ouvrir_upg(nom_upg: str):
     ouv_upg = nom_upg
 
 def init(Pseudo: str):
-    global données, objets_achetables, suchis, paramètres, etat_jeu
+    global données, suchis, paramètres, etat_jeu
 
     ajouter_texte(px.width - 5, 5, 1, "", 7, "Menu", type_retour= "Inversé")
     données = Base_données(Pseudo)
 
     etat_jeu = "Menu"
 
-    achetés = données.recup_objets()
-    objets_achetables = []
-    for i in range(len(objets)):
-        if not achetés[i]:
-            if objets[i]["requirement"] == None or achetés[objets[i]["requirement"]] == True:
-                objets_achetables.append(objets[i].copy())
-
-    
     suchis = données.recup_suchis()
 
     paramètres = {"Difficultée": données.recup_param("Difficultée")}
@@ -1013,16 +1040,10 @@ def init(Pseudo: str):
     ajouter_bouton(px.width - 31, 7, 16, 16, "Infos", ouvrir_menu, "Menu", modèle= True, x_img= 80, y_img= 32, x_img_a= 80, y_img_a= 48)
 
     ### Boutons du menu de la boutique ###
+    for objet in objets:
+        ajouter_bouton(0, 0, 16, 16, "Shop", ouvrir_upg, objet["nom"], taille= 3, modèle= True, x_img= refs_butons_upgs[objet["nom_modèle"]]["x_img"], y_img= refs_butons_upgs[objet["nom_modèle"]]["y_img"], x_img_a= refs_butons_upgs[objet["nom_modèle"]]["x_img_a"], y_img_a= refs_butons_upgs[objet["nom_modèle"]]["y_img_a"]).exclusion()
+    données.refresh_objets()
     ajouter_bouton(px.width - 31, 7, 16, 16, "Shop", ouvrir_menu, "Menu", modèle= True, x_img= 80, y_img= 32, x_img_a= 80, y_img_a= 48)
-    x_base = x = 160
-    y = 50
-    espacement = 60
-    for i in range(len(objets_achetables)):
-        if i % 6 == 0:
-            y += espacement
-            x = x_base
-        ajouter_bouton(x, y, 16, 16, "Shop", ouvrir_upg, objets_achetables[i]["nom"], taille= 3, modèle= True, x_img= refs_butons_upgs[objets_achetables[i]["nom_modèle"]]["x_img"], y_img= refs_butons_upgs[objets_achetables[i]["nom_modèle"]]["y_img"], x_img_a= refs_butons_upgs[objets_achetables[i]["nom_modèle"]]["x_img_a"], y_img_a= refs_butons_upgs[objets_achetables[i]["nom_modèle"]]["y_img_a"])
-        x += espacement
     ### Textes menu de la boutique ###
     ajouter_texte(px.width / 2 + 40, 13, 2, f"{données.recup_suchis()}", 3, "Shop", "Millieu")
 
@@ -1031,6 +1052,7 @@ def init(Pseudo: str):
         ajouter_texte(65, 20, 1, objet["nom"], 16, objet["nom"], "Millieu")
         ajouter_texte(67, 50, 0.6, objet["description"], 1, objet["nom"], "Millieu")
         ajouter_texte(65, px.height - 50, 1, f"Prix: {objet["prix"]}", 12, objet["nom"], "Millieu")
+        ajouter_texte(65, px.height - 40, 1, "", 16, objet["nom"], "Millieu")
 
         ajouter_bouton(49, px.height - 70, 32, 16, objet["nom"], données.acheter_objet, objet["nom"], modèle= False, couleur1= 10, couleur2= 12, bordure= 3)
 
@@ -1069,9 +1091,9 @@ def update():
         if etat_jeu == "Menu":
             if menu_ouvert == "Shop":
                 for boutons in elements["Shop"]["boutons"][1:]:
-                    boutons.change_y(boutons.y + px.mouse_wheel)
+                    boutons.change_position(y = boutons.y + px.mouse_wheel)
                     if boutons.y <= 75:
-                        boutons.exclusion(True)
+                        boutons.exclusion()
                     else:
                         boutons.exclusion(False)
                 if ouv_upg != None:
@@ -1097,8 +1119,8 @@ def update():
                 if px.btnp(px.KEY_DOWN):
                     etat_jeu = "Menu"
         
-    if px.btnp(px.KEY_A):
-        px.quit()
+        if px.btnp(px.KEY_A):
+            px.quit()
 
 def draw():
     if not def_pseudo.choisi:
@@ -1165,7 +1187,7 @@ base_stats = {"Vitesse": 1,
               "Range ult": 3, 
               "Reload ult": 10, 
               "Att ult": 1, 
-              "Parade chance": 5, 
+              "Parade": 5,
               "Delay 1ere charge": 60, 
               "Delay 2eme charge": 90, 
               "Delay 3eme charge": 180, 
@@ -1190,8 +1212,8 @@ objets = (  {"nom": "La première/vitesse", "stat": "Vitesse", "valeur": 1.1, "d
             {"nom": "On tape 2/fois ici", "stat": "Att ult", "valeur": 2, "description": "Attaquer mais en plus/fort !! 2 x plus de dmg/edhiuh hdahuihh hdd/dbehjbajb abbdjz ab d/dhehabbd bajbhba.", "prix": 900, "nom_modèle": "ult", "requirement": 11},
             {"nom": "La parade", "stat": "Parade", "valeur": 10, "description": "Vous avez l'impresion de/trop vous faire toucher/prenez ce bonus et/vous ne le serez plus./10% par coup de parer l'att/jdehi uhfiz efrjifr/ededafrez rfzefrefzf frfrez", "prix": 400, "nom_modèle": "parade", "requirement": None},
             {"nom": "Rapide 1", "stat": "Delay 1ere charge", "valeur": 40, "description": "La vitesse c'est la clé/la première charge arrive/33% plus rapidement./fjojfjr ozjeofjofjz rfz/jrzfrj efjeifoj ez/headud edhuhdiazhd jdao", "prix": 600, "nom_modèle": "delay", "requirement": None},
-            {"nom": "Rapide 2", "stat": "Delay 2ere charge", "valeur": 80, "description": "Attaquer vite est/un requis/la première charge arrive/10 % plus rapidement/rhzfiuhfize ffurfhiufhz/hduhz uehfiufh huuzh/fhrf zhfiezuhf ruihfuzif/hfhzifhz hufzhf huifh", "prix": 800, "nom_modèle": "delay", "requirement": None},
-            {"nom": "Rapide 3", "stat": "Delay 3ere charge", "valeur": 170, "description": "Tu as deja la 3eme/charge !? Alors ai la/plus rapidement!! ydygdagd/dyuadgey deazydgheadu/gdagy gyduagyugdh/gyedgayegdg hedhhedha", "prix": 1000, "nom_modèle": "delay", "requirement": 12},
+            {"nom": "Rapide 2", "stat": "Delay 2eme charge", "valeur": 80, "description": "Attaquer vite est/un requis/la première charge arrive/10 % plus rapidement/rhzfiuhfize ffurfhiufhz/hduhz uehfiufh huuzh/fhrf zhfiezuhf ruihfuzif/hfhzifhz hufzhf huifh", "prix": 800, "nom_modèle": "delay", "requirement": None},
+            {"nom": "Rapide 3", "stat": "Delay 3eme charge", "valeur": 170, "description": "Tu as deja la 3eme/charge !? Alors ai la/plus rapidement!! ydygdagd/dyuadgey deazydgheadu/gdagy gyduagyugdh/gyedgayegdg hedhhedha", "prix": 1000, "nom_modèle": "delay", "requirement": 12},
             {"nom": "Attaquer mais/en plus rapide", "stat": "reload att", "valeur": 110, "description": "L'attaque de ton/personnage ne suis pas/prend cette upgrade/pour attaques plus/VITE hurzheuhifhz/hfuzhizh hzufhehihf", "prix": 500, "nom_modèle": "delay", "requirement": None},
             {"nom": "Un ult ???", "stat": "Ult", "valeur": True, "description": "Débloque un ultimate/surpuissant. degydgydggg/jideajiodj yeayuagdga/nnndnyuatbhf/opkkdkoeo gdgyge/dnjzndja jdhajzjii/hruzfhfzf fhuzfhefuezhufhzr", "prix": 1000, "nom_modèle": "ult", "requirement": None},
             {"nom": "La 3eme", "stat": "3eme charge", "valeur": True, "description": "Débloque la 3eme et/dernière charge/du jeu. gdyaezgdgdyezg/dbeabzd,ekaedna iduazjha/daziudbuda neadodaooo/dedeza rfrfezfrzrgftrgre", "prix": 1200, "nom_modèle": "3charge", "requirement": None},
