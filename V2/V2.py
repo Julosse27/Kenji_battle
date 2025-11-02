@@ -9,7 +9,6 @@ import sqlite3
 from os import path
 from typing import Literal, Final
 from random import randint
-from time import sleep
 
 Ressources = path.abspath(r"Ressources\Kenji_battle_ressources.pyxres")
 Données = path.abspath(r"Ressources\Données.sq3")
@@ -223,6 +222,8 @@ class Bouton:
 
     def exclusion(self, valeur: bool = True):
         self.exclu = valeur
+        if self.fonction == ouvrir_menu:
+            print(px.frame_count, valeur)
 
     def change_position(self, x: float = None, y: float = None): #type: ignore
         """
@@ -901,9 +902,8 @@ class Base_données:
             cur.execute(f"update {pseudo}_amélioration set acheté = True where rowid = {i}")
             conn.commit()
 
-        self.refresh_objets()
-            
         self.refresh_stats()
+        self.refresh_objets()
         self.fermeture(conn, cur)
 
     def refresh_objets(self):
@@ -922,8 +922,6 @@ class Base_données:
                 elements["Shop"]["boutons"][i].change_position(x = x, y = y)
                 x += espace
                 u += 1
-            else:
-                elements["Shop"]["boutons"][i].exclusion()
         
         global ouv_upg
         ouv_upg = None
@@ -1005,6 +1003,9 @@ def ouvrir_menu(menu):
 
         for i in range(len(scores)):
             elements["Score"]["texte"][i].change_texte(f"{i + 1}.{scores[i][1]}{"_" * (23 - (len(scores[i][1]) + len(str(scores[i][0]))))}{scores[i][0]}")
+    for bouton in elements["Shop"]["boutons"]:
+        print(bouton.fonction, bouton.exclu)
+    print(len(elements["Shop"]["boutons"]))
     
 
 def change_pseudo():
@@ -1041,9 +1042,9 @@ def init(Pseudo: str):
 
     ### Boutons du menu de la boutique ###
     for objet in objets:
-        ajouter_bouton(0, 0, 16, 16, "Shop", ouvrir_upg, objet["nom"], taille= 3, modèle= True, x_img= refs_butons_upgs[objet["nom_modèle"]]["x_img"], y_img= refs_butons_upgs[objet["nom_modèle"]]["y_img"], x_img_a= refs_butons_upgs[objet["nom_modèle"]]["x_img_a"], y_img_a= refs_butons_upgs[objet["nom_modèle"]]["y_img_a"]).exclusion()
+        ajouter_bouton(0, 0, 16, 16, "Shop", ouvrir_upg, objet["nom"], taille= 3, modèle= True, x_img= refs_butons_upgs[objet["nom_modèle"]]["x_img"], y_img= refs_butons_upgs[objet["nom_modèle"]]["y_img"], x_img_a= refs_butons_upgs[objet["nom_modèle"]]["x_img_a"], y_img_a= refs_butons_upgs[objet["nom_modèle"]]["y_img_a"])
     données.refresh_objets()
-    ajouter_bouton(px.width - 31, 7, 16, 16, "Shop", ouvrir_menu, "Menu", modèle= True, x_img= 80, y_img= 32, x_img_a= 80, y_img_a= 48)
+    ajouter_bouton(px.width // 2, 20, 16, 16, "Shop", ouvrir_menu, "Menu", modèle= True, x_img= 80, y_img= 32, x_img_a= 80, y_img_a= 48)
     ### Textes menu de la boutique ###
     ajouter_texte(px.width / 2 + 40, 13, 2, f"{données.recup_suchis()}", 3, "Shop", "Millieu")
 
@@ -1090,7 +1091,7 @@ def update():
         global etat_jeu
         if etat_jeu == "Menu":
             if menu_ouvert == "Shop":
-                for boutons in elements["Shop"]["boutons"][1:]:
+                for boutons in elements["Shop"]["boutons"][:-2]:
                     boutons.change_position(y = boutons.y + px.mouse_wheel)
                     if boutons.y <= 75:
                         boutons.exclusion()
