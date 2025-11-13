@@ -1203,6 +1203,7 @@ base_stats = {"Vitesse": 1,
               "Ult": False,
               "Mini slash": False
               }
+
 refs_butons_upgs = {"vitesse": {"x_img": 64, "y_img": 32, "x_img_a": 64, "y_img_a": 48},
                     "revenus score": {"x_img": 176, "y_img": 0, "x_img_a": 176, "y_img_a": 16},
                     "revenus suchis": {"x_img": 160, "y_img": 32, "x_img_a": 160, "y_img_a": 48},
@@ -1211,6 +1212,7 @@ refs_butons_upgs = {"vitesse": {"x_img": 64, "y_img": 32, "x_img_a": 64, "y_img_
                     "delay": {"x_img": 160, "y_img": 0, "x_img_a": 160, "y_img_a": 16},
                     "3charge": {"x_img": 192, "y_img": 64, "x_img_a": 192, "y_img_a": 80}
                     }
+
 objets = (  {"nom": "La première/vitesse", "stat": "Vitesse", "valeur": 1.1, "description": "Stats visée: la vitesse./Elle augmente ta vitesse/mais attention/elle augmente aussi/un peu celle des ennemis.//Augmentation de 10 %", "prix": 100, "nom_modèle": "vitesse", "requirement": None},
             {"nom": "Adepte du/petit score", "stat": "Revenus score", "valeur": 1.1, "description": "Tu as l'impresion de/ne plus rien gagner/prend ça et profite de ton/bonus de 10% pedegdezgd/ kdoeokakdekdpaokd/dhehduazhhzeua", "prix": 200, "nom_modèle": "revenus score", "requirement": None}, 
             {"nom": "Adepte de la/mini pièce", "stat": "Revenus suchis", "valeur": 1.1, "description": "Un trou dans le monaie ?/Voila un peu d'aide,/un bonus de 10% (encore)/yueahrh fzrjfeijf reifu/rjf uzfiref eziuhf", "prix": 300, "nom_modèle": "revenus suchis", "requirement": None}, 
