@@ -65,6 +65,10 @@ def draw_elements(gr_elements, *type_elements):
     if not len(type_elements) == 0:
         for type_element in type_elements:
             for element in elements[gr_elements][type_element]:
+                if gr_elements == "Shop" and type_element == "boutons" and elements["Shop"]["boutons"].index(element) == len(elements["Shop"]["boutons"]) - 1:
+                    px.rect(0, 64, px.width, 16, 9)
+                    px.rect(0, 32, px.width, 16, 9)
+                    px.rect(0, 48, px.width, 16, 10)
                 element.draw()
 
 class Perso:
@@ -222,8 +226,6 @@ class Bouton:
 
     def exclusion(self, valeur: bool = True):
         self.exclu = valeur
-        if self.fonction == ouvrir_menu:
-            print(px.frame_count, valeur)
 
     def change_position(self, x: float = None, y: float = None): #type: ignore
         """
@@ -481,6 +483,14 @@ class Def_pseudo:
         if px.frame_count % 30 < 15:
             px.line(self.x_txt + (8 * len(self.pseudo)), self.y_txt, self.x_txt + (8 * len(self.pseudo)), self.y_txt + 8, self.couleur_txt)
 
+class Kunai:
+    def __init__(self, cible: Literal["joueur", "ennemis"], x_base: int | float, y_base: int | float, sens: Literal[1, -1], width: int = 16, height: int = 16):
+        self._POT_CIBLE = ["joueur", "ennemis"]
+        self.cible = cible
+        self.x = x_base
+        self.y = y_base
+        self.sens = sens
+
 class Ennemi:
     """
     La dedans c'est un ennemis et comment tout est géré.
@@ -491,11 +501,11 @@ class Ennemi:
         Quel ennemi c'est.
     """
     def __init__(self, type_ennemi: Literal["distance", "sabre", "assasin", "lanceur", "tank"]):
-        self._up: Final = {"distance": self.distance_up, "sabre": self.sabre_up, "assasin": self.assasin_up, "lanceur": self.lanceur_up, "tank": self.tank_up}
-        self._setup: Final = {"distance": self.distance_setup, "sabre": self.sabre_setup, "assasin": self.assasin_setup, "lanceur": self.lanceur_setup, "tank": self.tank_setup}
+        self._UP = {"distance": self.distance_up, "sabre": self.sabre_up, "assasin": self.assasin_up, "lanceur": self.lanceur_up, "tank": self.tank_up}
+        self._SETUP = {"distance": self.distance_setup, "sabre": self.sabre_setup, "assasin": self.assasin_setup, "lanceur": self.lanceur_setup, "tank": self.tank_setup}
 
-        self.update: Final = self._up[type_ennemi]
-        self._setup[type_ennemi]()
+        self.update: Final = self._UP[type_ennemi]
+        self._SETUP[type_ennemi]()
 
         self.type_e: str = type_ennemi
 
@@ -1003,10 +1013,6 @@ def ouvrir_menu(menu):
 
         for i in range(len(scores)):
             elements["Score"]["texte"][i].change_texte(f"{i + 1}.{scores[i][1]}{"_" * (23 - (len(scores[i][1]) + len(str(scores[i][0]))))}{scores[i][0]}")
-    for bouton in elements["Shop"]["boutons"]:
-        print(bouton.fonction, bouton.exclu)
-    print(len(elements["Shop"]["boutons"]))
-    
 
 def change_pseudo():
     global def_pseudo
@@ -1044,7 +1050,7 @@ def init(Pseudo: str):
     for objet in objets:
         ajouter_bouton(0, 0, 16, 16, "Shop", ouvrir_upg, objet["nom"], taille= 3, modèle= True, x_img= refs_butons_upgs[objet["nom_modèle"]]["x_img"], y_img= refs_butons_upgs[objet["nom_modèle"]]["y_img"], x_img_a= refs_butons_upgs[objet["nom_modèle"]]["x_img_a"], y_img_a= refs_butons_upgs[objet["nom_modèle"]]["y_img_a"])
     données.refresh_objets()
-    ajouter_bouton(px.width // 2, 20, 16, 16, "Shop", ouvrir_menu, "Menu", modèle= True, x_img= 80, y_img= 32, x_img_a= 80, y_img_a= 48)
+    ajouter_bouton(px.width - 31, 7, 16, 16, "Shop", ouvrir_menu, "Menu", modèle= True, x_img= 80, y_img= 32, x_img_a= 80, y_img_a= 48)
     ### Textes menu de la boutique ###
     ajouter_texte(px.width / 2 + 40, 13, 2, f"{données.recup_suchis()}", 3, "Shop", "Millieu")
 
@@ -1091,9 +1097,9 @@ def update():
         global etat_jeu
         if etat_jeu == "Menu":
             if menu_ouvert == "Shop":
-                for boutons in elements["Shop"]["boutons"][:-2]:
+                for boutons in elements["Shop"]["boutons"][:-1]:
                     boutons.change_position(y = boutons.y + px.mouse_wheel)
-                    if boutons.y <= 75:
+                    if boutons.y <= 48:
                         boutons.exclusion()
                     else:
                         boutons.exclusion(False)
