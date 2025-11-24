@@ -405,7 +405,7 @@ class Def_pseudo:
         self.y_txt = 139
 
         if not new:
-            self.pseudo = Base_données.recup_last_pseudo() #type: ignore
+            self.pseudo = Base_données.recup_last_pseudo()
             self.choisi = True
         else:
             self.choisi = False
@@ -783,7 +783,8 @@ class Base_données:
         cur.close()
         conn.close()
 
-    def réinitialisation(): #type: ignore
+    @classmethod
+    def réinitialisation(cls):
         conn = sqlite3.connect(Données)
         cur = conn.cursor()
         ll = cur.execute("select name from sqlite_master").fetchall()
@@ -801,8 +802,9 @@ class Base_données:
 
         cur.close()
         conn.close()
-        
-    def création(): #type: ignore
+
+    @classmethod  
+    def création(cls):
         conn = sqlite3.connect(Données)
         cur = conn.cursor()
         cur.execute("create table Pseudos(pseudo text, last bolean default False)")
@@ -848,7 +850,8 @@ class Base_données:
         self.fermeture(conn, cur)
         self.refresh_score()
 
-    def chek_new(): #type: ignore
+    @classmethod 
+    def chek_new(cls):
         conn = sqlite3.connect(Données)
         cur = conn.cursor()
         if len(cur.execute("select * from Pseudos").fetchall()) == 0:
@@ -868,7 +871,8 @@ class Base_données:
         self.fermeture(conn, cur)
         return result
     
-    def recup_last_pseudo() -> str: #type: ignore
+    @classmethod 
+    def recup_last_pseudo(cls) -> str:
         conn = sqlite3.connect(Données)
         cur = conn.cursor()
         i = cur.execute("select pseudo from Pseudos where last = True").fetchone()[0]
@@ -1180,7 +1184,7 @@ couleurs.append(0xff2626)
 px.colors.from_list(couleurs)
 
 # vérifie si l'utilisateur se connecte pour la première fois
-new = Base_données.chek_new() #type: ignore
+new = Base_données.chek_new()
 
 difficultées =      {
     "Facile": {"txt":"Vraiment/vous n'arrivez pas/à jouer !!!//- 3 ennemis par vagues/- 2 types d'ennemis/- 5 vies/x0.5 de récompense", "couleur": 0x109837, "rendement": 0.5, "vies": 5, "ennemis": {"distance": {"nb_max": 3, "respawn": 400}, "sabre": {"nb_max": 3, "respawn": 500}, "assasin": {"nb_max": 0, "respawn": 0}, "lanceur": {"nb_max": 0, "respawn": 0}, "tank": {"nb_max": 0, "respawn": 0}}},
