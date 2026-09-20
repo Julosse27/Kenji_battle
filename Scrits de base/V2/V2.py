@@ -10,7 +10,7 @@ from os import path
 from typing import Literal, Final
 from random import randint
 
-Ressources = path.abspath(r"Ressources\Kenji_battle_ressources.pyxres")
+Ressources = path.abspath(r"Ressources\kenji_battle_ressources.pyxres")
 Données = path.abspath(r"Ressources\Données.sq3")
 
 lettres = (
@@ -37,7 +37,7 @@ touches_spé =  ((px.KEY_2, "2", "é"), (px.KEY_4, "4", "'"), (px.KEY_5, "5", "(
 touches_keypad = ((px.KEY_KP_0, "0"), (px.KEY_KP_1, "1"), (px.KEY_KP_2, "2"), (px.KEY_KP_3, "3"), (px.KEY_KP_4, "4"), (px.KEY_KP_5, "5"), (px.KEY_KP_6, "6"),
                 (px.KEY_KP_7, "7"), (px.KEY_KP_8, "8"), (px.KEY_KP_9, "9"))
 
-def ajouter_texte(x: float, y: float, taille: float, txt: str, couleur, gr_elements: str, type_retour: Literal["Normal", "Millieu", "Inversé"] = "Normal"):
+def ajouter_texte(x: float, y: float, taille: float, txt: str, couleur: str | int, gr_elements: str, type_retour: Literal["Normal", "Millieu", "Inversé"] = "Normal"):
     global elements
     elements[gr_elements]["texte"].append(Draw_texte(x, y, taille, txt, couleur, type_retour, len(elements[gr_elements]["texte"])))
 
@@ -277,11 +277,10 @@ class Bouton:
             
 class Draw_texte:
     class Retour:
-        def __init__(self, x, y, taille, texte, couleur, y_img, decallage):
+        def __init__(self, x, y, taille, texte, y_img, decallage):
             self.x = x
             self.y = y
             self.taille = taille
-            self.couleur = couleur
             self.y_img = y_img
             self.decallage = decallage
             self.positions = []
@@ -316,14 +315,23 @@ class Draw_texte:
 
     def change_couleur(self, couleur):
         global couleurs
-        if couleur > len(couleurs):
-            if couleur not in couleurs:
-                couleurs.append(couleur)
-                px.colors.from_list(couleurs)
-            self.couleur = couleurs.index(couleur)
-        else:
+        if type(couleur) is int:
+            assert couleur < len(couleurs)
             self.couleur = couleur
-        
+        elif type(couleur) is str:
+            assert couleur[:2] == '0x'
+
+            couleur = int(couleur, 16)
+
+            for i in range(len(couleurs)):
+                if couleurs[i] == couleur:
+                    self.couleur = i
+                    break
+            else:
+                self.couleur = len(couleurs)
+
+                couleurs.append(couleur)
+
     def change_texte(self, nouveau_txt):
         if self.type_retour == "Normal":
             self.x = self.x_base + 4 * len(nouveau_txt) * (self.taille - 1)
@@ -356,7 +364,7 @@ class Draw_texte:
                     elif self.type_retour == "Inversé":
                         x_retour = self.x_base - (txt[u] * 8)
 
-                    self.txts_retours.append(self.Retour(x_retour, self.y + (16 * u), self.taille, nouveau_txt[txt[u - 1] + 1:txt[u]], self.couleur, 2 * self.index, txt[u - 1]))
+                    self.txts_retours.append(self.Retour(x_retour, self.y + (16 * u), self.taille, nouveau_txt[txt[u - 1] + 1:txt[u]], 2 * self.index, txt[u - 1]))
 
             nouveau_txt = txt_base
         
@@ -399,8 +407,7 @@ class Def_pseudo:
         self.ch_p = changement_p
         self.majuscule = True
         self.gr_element = "def_pseudo"
-
-        self.couleur_txt = 0xEEEEEE
+        
         self.x_txt = 197
         self.y_txt = 139
 
@@ -414,12 +421,12 @@ class Def_pseudo:
             self.choisi = False
             self.pseudo = ""
 
-        ajouter_texte(256, 100, 1, "Choisit ton/pseudo !", self.couleur_txt, self.gr_element, "Millieu")
-        ajouter_texte(self.x_txt, self.y_txt, 1, self.pseudo, self.couleur_txt, self.gr_element)
+        ajouter_texte(256, 100, 1, "Choisit ton/pseudo !", '0xEEEEEE', self.gr_element, "Millieu")
+        ajouter_texte(self.x_txt, self.y_txt, 1, self.pseudo, '0xEEEEEE', self.gr_element)
 
         self.limite_taille_pseudo: Final = 15
         
-        self.couleur_txt = couleurs.index(self.couleur_txt)
+        self.couleur_txt = len(couleurs) - 1
 
     def chek_touches(self):
         écrit = False
@@ -1073,7 +1080,7 @@ def init(Pseudo: str):
     for i in range(2):
         for u in range(20):
             ajouter_texte(120 + (250 * i), 55 + (10 * u), 1, f"{(20 * i) + (u + 1)}.Score_encore_non_défini", 0, "Score", type_retour= "Millieu")
-    ajouter_texte(px.width / 2 - 10, 20, 3, "Scores", 0x008CFF, "Score", "Millieu")
+    ajouter_texte(px.width / 2 - 10, 20, 3, "Scores", '0x008CFF', "Score", "Millieu")
     données.refresh_score()
 
     ### Boutons du menu paramètres ###
@@ -1091,8 +1098,8 @@ def init(Pseudo: str):
     ajouter_texte(px.width / 2, px.height - 70, 1, "Apuyez sur la touche flèche/du bas pour revenir au menu", 7, "game_over", "Millieu")
     
     ### Textes du jeu global ###
-    ajouter_texte(10, 10, 2, "", 0xFFB700, "Jeu", "Normal")
-    ajouter_texte(px.width / 2, 10, 2, "", 0x00FF66, "Jeu", "Millieu")
+    ajouter_texte(10, 10, 2, "", '0xFFB700', "Jeu", "Normal")
+    ajouter_texte(px.width / 2, 10, 2, "", '0x00FF66', "Jeu", "Millieu")
 
 def update():
     if not def_pseudo.choisi:
@@ -1179,17 +1186,16 @@ def draw():
 px.init(512, 256, title= "Kenji Battle", fps= 60)
 px.load(Ressources)
 
-couleurs = px.colors.to_list()
+couleurs = px.colors
 couleurs.append(0xff2626)
-px.colors.from_list(couleurs)
 
 # vérifie si l'utilisateur se connecte pour la première fois
 new = Base_données.chek_new()
 
-difficultées =      {
-    "Facile": {"txt":"Vraiment/vous n'arrivez pas/à jouer !!!//- 3 ennemis par vagues/- 2 types d'ennemis/- 5 vies/x0.5 de récompense", "couleur": 0x109837, "rendement": 0.5, "vies": 5, "ennemis": {"distance": {"nb_max": 3, "respawn": 400}, "sabre": {"nb_max": 3, "respawn": 500}, "assasin": {"nb_max": 0, "respawn": 0}, "lanceur": {"nb_max": 0, "respawn": 0}, "tank": {"nb_max": 0, "respawn": 0}}},
-    "Moyen": {"txt":"Vous êtes tout/juste dans la moyenne//- 4 ennemis par vagues/- 3 type d'ennemis/- 4 vies//x1 de récompenses", "couleur": 0xcb6e05, "rendement": 1, "vies": 4, "ennemis": {"distance": {"nb_max": 3, "respawn": 400}, "sabre": {"nb_max": 3, "respawn": 500}, "assasin": {"nb_max": 0, "respawn": 0}, "lanceur": {"nb_max": 0, "respawn": 0}, "tank": {"nb_max": 0, "respawn": 0}}},
-    "Diffiçile": {"txt":"La dernière difficultée/???//- 5 ennemis par vagues/- 5 types d'ennemis/- 3 vies//x2 de récompense", "couleur": 0xf50000, "rendement": 2, "vies": 3, "ennemis": {"distance": {"nb_max": 3, "respawn": 400}, "sabre": {"nb_max": 3, "respawn": 500}, "assasin": {"nb_max": 0, "respawn": 0}, "lanceur": {"nb_max": 0, "respawn": 0}, "tank": {"nb_max": 0, "respawn": 0}}}
+difficultées = {
+    "Facile": {"txt":"Vraiment/vous n'arrivez pas/à jouer !!!//- 3 ennemis par vagues/- 2 types d'ennemis/- 5 vies/x0.5 de récompense", "couleur": '0x109837', "rendement": 0.5, "vies": 5, "ennemis": {"distance": {"nb_max": 3, "respawn": 400}, "sabre": {"nb_max": 3, "respawn": 500}, "assasin": {"nb_max": 0, "respawn": 0}, "lanceur": {"nb_max": 0, "respawn": 0}, "tank": {"nb_max": 0, "respawn": 0}}},
+    "Moyen": {"txt":"Vous êtes tout/juste dans la moyenne//- 4 ennemis par vagues/- 3 type d'ennemis/- 4 vies//x1 de récompenses", "couleur": '0xcb6e05', "rendement": 1, "vies": 4, "ennemis": {"distance": {"nb_max": 3, "respawn": 400}, "sabre": {"nb_max": 3, "respawn": 500}, "assasin": {"nb_max": 0, "respawn": 0}, "lanceur": {"nb_max": 0, "respawn": 0}, "tank": {"nb_max": 0, "respawn": 0}}},
+    "Diffiçile": {"txt":"La dernière difficultée/???//- 5 ennemis par vagues/- 5 types d'ennemis/- 3 vies//x2 de récompense", "couleur": '0xf50000', "rendement": 2, "vies": 3, "ennemis": {"distance": {"nb_max": 3, "respawn": 400}, "sabre": {"nb_max": 3, "respawn": 500}, "assasin": {"nb_max": 0, "respawn": 0}, "lanceur": {"nb_max": 0, "respawn": 0}, "tank": {"nb_max": 0, "respawn": 0}}}
     }
 
 base_stats = {"Vitesse": 1, 
@@ -1241,5 +1247,7 @@ if def_pseudo.choisi:
 
 menu_ouvert = "Menu"
 ouv_upg = None
+
+# Base_données.réinitialisation()
 
 px.run(update, draw)
